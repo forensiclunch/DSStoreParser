@@ -39,7 +39,7 @@ if action.lower() == 'parse':
     print("DSStoreEntry_Filename\tDSStoreEntry_Type\tDSStoreEntry_Code\tDSStoreEntry_Value\n")
     for i in store:
         print(str(i.filename)+"\t"+str(i.type)+"\t"+str(i.code)+"\t"+str(i.value)+"\n")
-        sys.exit(1)
+    sys.exit(1)
 
 
 o_file = open("original.txt",'wb')
