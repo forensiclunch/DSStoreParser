@@ -8,7 +8,38 @@ Usage
       --action: The action to perform on the source. Available options are:
           parse: Parse the .DS_Store file. Parsed data is outputted to stdout
           watch: Watch the .DS_Store file for changes and print changes to stdout. useful for research.
+Output from 'parse' Action
+---------------------
+The tool outputs parsed data to stdout. The data is tab delimited so feel free to redirect output to a file.
+    
+    DSStoreEntry_Filename   DSStoreEntry_Type       DSStoreEntry_Code       DSStoreEntry_Value
 
+    2016 04 Java    <class 'ds_store.store.PlistCodec'>     bwsp    {'ShowStatusBar': True, 'WindowBounds':
+    '{{131, 232}, {1206, 694}}', 'ContainerShowSidebar': True, 'SidebarWidth': 192, 'ShowTabView': False, 'P
+    reviewPaneVisibility': False, 'ShowToolbar': True, 'ShowSidebar': True, 'ShowPathbar': True}
+
+    2016 04 Java    bool    dscl    False
+
+    2016 04 Java    <class 'ds_store.store.PlistCodec'>     lsvP    {'sortColumn': 'name', 'textSize': 12.0,
+     'viewOptionsVersion': 1, 'calculateAllSizes': False, 'iconSize': 16.0, 'showIconPreview': True, 'useRel
+    ativeDates': True, 'columns': [{'visible': True, 'ascending': True, 'identifier': 'name', 'width': 620},
+     {'visible': True, 'ascending': False, 'identifier': 'dateModified', 'width': 181}, {'visible': False, '
+    ascending': False, 'identifier': 'dateCreated', 'width': 181}, {'visible': True, 'ascending': False, 'id
+    entifier': 'size', 'width': 97}, {'visible': True, 'ascending': True, 'identifier': 'kind', 'width': 115
+    }, {'visible': False, 'ascending': True, 'identifier': 'label', 'width': 100}, {'visible': False, 'ascen
+    ding': True, 'identifier': 'version', 'width': 75}, {'visible': False, 'ascending': True, 'identifier':
+    'comments', 'width': 300}, {'visible': False, 'ascending': False, 'identifier': 'dateLastOpened', 'width
+    ': 200}, {'visible': False, 'ascending': False, 'identifier': 'dateAdded', 'width': 181}]}
+
+    2016 04 Java    <class 'ds_store.store.PlistCodec'>     lsvp    {'sortColumn': 'name', 'textSize': 12.0,
+     'viewOptionsVersion': 1, 'calculateAllSizes': False, 'iconSize': 16.0, 'showIconPreview': True, 'useRel
+    ativeDates': True, 'columns': {'kind': {'visible': True, 'ascending': True, 'index': 4, 'width': 115}, '
+    name': {'visible': True, 'ascending': True, 'index': 0, 'width': 620}, 'dateLastOpened': {'visible': Fal
+    se, 'ascending': False, 'index': 8, 'width': 200}, 'comments': {'visible': False, 'ascending': True, 'in
+    dex': 7, 'width': 300}, 'label': {'visible': False, 'ascending': True, 'index': 5, 'width': 100}, 'versi
+    on': {'visible': False, 'ascending': True, 'index': 6, 'width': 75}, 'dateCreated': {'visible': False, '
+    ascending': False, 'index': 2, 'width': 181}, 'dateModified': {'visible': True, 'ascending': False, 'ind
+    ex': 1, 'width': 181}, 'size': {'visible': True, 'ascending': False, 'index': 3, 'width': 97}}}
 DSStore Record Types
 ----
 MacOS DSStore Record Types from http://search.cpan.org/~wiml/Mac-Finder-DSStore/DSStoreFormat.pod.
