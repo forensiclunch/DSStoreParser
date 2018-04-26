@@ -22,6 +22,7 @@ import sys, os
 import filecmp
 import hashlib
 import atexit
+import datetime
 from time import strftime, gmtime
 
 try:
