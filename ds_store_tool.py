@@ -61,6 +61,10 @@ def Main():
     if action.lower() == 'parse':
         print("DSStoreEntry_Filename\tDSStoreEntry_Type\tDSStoreEntry_Code\tDSStoreEntry_Value\n")
         for i in store:
+            if str(i.type) == 'dutc':
+                d = datetime.datetime.strptime("01-01-1904", "%m-%d-%Y")
+                utime = (d + datetime.timedelta(seconds=int(i.value)/65536)).strftime("%a, %d %b %Y %H:%M:%S GMT")
+                i.value = utime
             print(str(i.filename)+"\t"+str(i.type)+"\t"+str(i.code)+"\t"+str(i.value)+"\n")
         sys.exit(1)
         
