@@ -1,47 +1,28 @@
-# ds_store_tool
-macOS .DS_Store Parser and Watcher
+# DsStoreParser.py
+macOS .DS_Store Parser
 
-Usage
----------------------
-    usage: ds_store_tool.py --source SOURCE_DS_STORE_FILE --action [parse|watch]
-      --source: The source .DS_Store file to run action against.
-      --action: The action to perform on the source. Available options are:
-          parse: Parse the .DS_Store file. Parsed data is outputted to stdout
-          watch: Watch the .DS_Store file for changes and print changes to stdout. useful for research.
-Output from 'parse' Action
----------------------
-The tool outputs parsed data to stdout. The data is tab delimited so feel free to redirect output to a file.
-    
-    DSStoreEntry_Filename   DSStoreEntry_Type       DSStoreEntry_Code       DSStoreEntry_Value
+## Usage
+```
+usage: DsStoreParser.py [-h] -s SOURCE
 
-    2016 04 Java    <class 'ds_store.store.PlistCodec'>     bwsp    {'ShowStatusBar': True, 'WindowBounds':
-    '{{131, 232}, {1206, 694}}', 'ContainerShowSidebar': True, 'SidebarWidth': 192, 'ShowTabView': False, 'P
-    reviewPaneVisibility': False, 'ShowToolbar': True, 'ShowSidebar': True, 'ShowPathbar': True}
+.DS_Store Parser CLI tool.
 
-    2016 04 Java    bool    dscl    False
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SOURCE, --source SOURCE
+                        The source file to parse.
+```
 
-    2016 04 Java    <class 'ds_store.store.PlistCodec'>     lsvP    {'sortColumn': 'name', 'textSize': 12.0,
-     'viewOptionsVersion': 1, 'calculateAllSizes': False, 'iconSize': 16.0, 'showIconPreview': True, 'useRel
-    ativeDates': True, 'columns': [{'visible': True, 'ascending': True, 'identifier': 'name', 'width': 620},
-     {'visible': True, 'ascending': False, 'identifier': 'dateModified', 'width': 181}, {'visible': False, '
-    ascending': False, 'identifier': 'dateCreated', 'width': 181}, {'visible': True, 'ascending': False, 'id
-    entifier': 'size', 'width': 97}, {'visible': True, 'ascending': True, 'identifier': 'kind', 'width': 115
-    }, {'visible': False, 'ascending': True, 'identifier': 'label', 'width': 100}, {'visible': False, 'ascen
-    ding': True, 'identifier': 'version', 'width': 75}, {'visible': False, 'ascending': True, 'identifier':
-    'comments', 'width': 300}, {'visible': False, 'ascending': False, 'identifier': 'dateLastOpened', 'width
-    ': 200}, {'visible': False, 'ascending': False, 'identifier': 'dateAdded', 'width': 181}]}
+## Example Output
+Tab delimited output:
+```
+M1-Test-Shared_Folder_Desktop	PlistCodec	bwsp	{'ShowStatusBar': False, 'WindowBounds': '{{233, 313}, {770, 437}}', 'ContainerShowSidebar': True, 'SidebarWidth': 192, 'ShowTabView': False, 'PreviewPaneVisibility': False, 'ShowToolbar': True, 'ShowSidebar': True, 'ShowPathbar': False}
+M1-Test-Shared_Folder_Desktop	blob	dilc	0000000000010000ffffffc50000011f00016f7c00008bf6ffffffffffff0000
+M1-Test-Shared_Folder_Desktop	comp	lg1S	12300
+M1-Test-Shared_Folder_Desktop	dutc	moDD	2017-09-12 22:03:23
+```
 
-    2016 04 Java    <class 'ds_store.store.PlistCodec'>     lsvp    {'sortColumn': 'name', 'textSize': 12.0,
-     'viewOptionsVersion': 1, 'calculateAllSizes': False, 'iconSize': 16.0, 'showIconPreview': True, 'useRel
-    ativeDates': True, 'columns': {'kind': {'visible': True, 'ascending': True, 'index': 4, 'width': 115}, '
-    name': {'visible': True, 'ascending': True, 'index': 0, 'width': 620}, 'dateLastOpened': {'visible': Fal
-    se, 'ascending': False, 'index': 8, 'width': 200}, 'comments': {'visible': False, 'ascending': True, 'in
-    dex': 7, 'width': 300}, 'label': {'visible': False, 'ascending': True, 'index': 5, 'width': 100}, 'versi
-    on': {'visible': False, 'ascending': True, 'index': 6, 'width': 75}, 'dateCreated': {'visible': False, '
-    ascending': False, 'index': 2, 'width': 181}, 'dateModified': {'visible': True, 'ascending': False, 'ind
-    ex': 1, 'width': 181}, 'size': {'visible': True, 'ascending': False, 'index': 3, 'width': 97}}}
-DSStore Record Types
-----
+# DSStore Record Types
 MacOS DSStore Record Types from http://search.cpan.org/~wiml/Mac-Finder-DSStore/DSStoreFormat.pod.
 
 
