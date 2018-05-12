@@ -10,7 +10,7 @@ except ImportError:
 
 setup(
     name='ds_store_parser',
-    version='0.0.1',
+    version='0.1.0',
     description='A .DS_Store Parser',
     author = 'G-C Partners, LLC',
     author_email = 'nibrahim@g-cpartners.com',

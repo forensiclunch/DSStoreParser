@@ -1,11 +1,19 @@
-# DsStoreParser.py
-macOS .DS_Store Parser
+# DSStoreParser
+A set of tools and libs that can parse .DS_Store.
+
+## Install from pip
+`pip install git+ssh://git@github.com/gcpartners/DSStoreParser.git`
+
+# ds_store_tool.py
+**scripts/ds_store_tool.py**
+
+macOS .DS_Store CLI Parser tool
 
 ## Usage
 ```
-usage: DsStoreParser.py [-h] -s SOURCE
+usage: ds_store_tool.py [-h] -s SOURCE
 
-.DS_Store Parser CLI tool.
+.DS_Store Parser CLI tool. v0.1.0
 
 optional arguments:
   -h, --help            show this help message and exit

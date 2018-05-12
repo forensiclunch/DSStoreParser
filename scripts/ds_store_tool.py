@@ -21,10 +21,12 @@ import sys
 import argparse
 from ds_store_parser import ds_store_handler
 
+__VERSION__ = "0.1.0"
+
 
 def get_arguments():
     """Get needed options for the cli parser interface"""
-    usage = """.DS_Store Parser CLI tool."""
+    usage = """.DS_Store Parser CLI tool. v{}""".format(__VERSION__)
 
     argument_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
