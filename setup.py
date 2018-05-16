@@ -15,7 +15,6 @@ setup(
     author = 'G-C Partners, LLC',
     author_email = 'nibrahim@g-cpartners.com',
     url='https://github.com/gcpartners/ds_store_tool',
-    # download_url = 'https://github.com/gcpartners/ds_store_tool/archive/0.0.1.tar.gz',
     license="Apache Software License v2",
     zip_safe=False,
     include_package_data=True,
@@ -26,7 +25,7 @@ setup(
         '.'
     ),
     scripts=[
-        u'scripts/DsStoreParser.py',
+        u'scripts/ds_store_tool.py',
     ],
     classifiers=[
         'Programming Language :: Python',
