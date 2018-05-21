@@ -11,14 +11,16 @@ macOS .DS_Store CLI Parser tool
 
 ## Usage
 ```
-usage: ds_store_tool.py [-h] -s SOURCE
+usage: ds_store_tool.py [-h] -s SOURCE [-r]
 
-.DS_Store Parser CLI tool. v0.1.0
+.DS_Store Parser CLI tool. v0.1.1
 
 optional arguments:
   -h, --help            show this help message and exit
   -s SOURCE, --source SOURCE
-                        The source file to parse.
+                        The source path to the .DS_Store file to parse.
+  -r, --recursive       Recursive option. Recursively search for .DS_Store
+                        files in the source path provided.
 ```
 
 ## Example Output
