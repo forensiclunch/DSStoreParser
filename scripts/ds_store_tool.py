@@ -16,12 +16,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 # implied.  See the License for the specific language governing
 # permissions and limitations under the License.
+import fnmatch
 import csv
 import sys
+import os
 import argparse
 from ds_store_parser import ds_store_handler
 
-__VERSION__ = "0.1.0"
+__VERSION__ = "0.1.1"
 
 
 def get_arguments():
@@ -39,26 +41,44 @@ def get_arguments():
         dest='source',
         action="store",
         required=True,
-        help='The source file to parse.'
+        help='The source path to the .DS_Store file to parse.'
     )
-
+    argument_parser.add_argument(
+        '-r',
+        '--recursive',
+        dest='recrs',
+        action="store_true",
+        required=False,
+        default=False,
+        help='Recursive option. Recursively search for .DS_Store files in the source path provided.'
+    )
     return argument_parser
 
 
 def main():
     arguments = get_arguments()
     options = arguments.parse_args()
-
+    s_path = []
+    s_name = '.DS_Store'
+    
     record_handler = RecordHandler()
-
-    file_io = open(options.source, "rb")
-    ds_handler = ds_store_handler.DsStoreHandler(
-        file_io, options.source
-    )
-    for record in ds_handler:
-        record_handler.write_record(
-            record
+    
+    if options.recrs:
+        for root, dirnames, filenames in os.walk(options.source):
+            for filename in fnmatch.filter(filenames, s_name):
+                s_path.append(os.path.join(root, filename))
+    else:
+        s_path.append(os.path.join(options.source, s_name))
+        
+    for ds_file in s_path:
+        file_io = open(ds_file, "rb")
+        ds_handler = ds_store_handler.DsStoreHandler(
+            file_io, ds_file
         )
+        for record in ds_handler:
+            record_handler.write_record(
+                record
+            )
 
 
 class RecordHandler(object):
