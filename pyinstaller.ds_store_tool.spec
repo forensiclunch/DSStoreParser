@@ -3,7 +3,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['./scripts/ds_store_tool.py'],
+    ['./ds_store_tool.py'],
     pathex=['.'],
     binaries=None,
     datas=[],
