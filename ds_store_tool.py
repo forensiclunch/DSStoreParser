@@ -73,8 +73,13 @@ def main():
         s_path.append(os.path.join(options.source, s_name))
         
     for ds_file in s_path:
-        
         file_io = open(ds_file, "rb")
+        
+        source_acc_time = os.stat(ds_file).st_atime
+        
+        # script will update accessed ts for write access volume in macOS
+        # when it reads contents of the file
+        source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
         try:
             ds_handler = ds_store_handler.DsStoreHandler(
                 file_io, 
@@ -84,12 +89,7 @@ def main():
         except Exception as exp:
             source_mod_time = os.stat(ds_file).st_mtime
             source_create_time = os.stat(ds_file).st_ctime
-            source_acc_time = os.stat(ds_file).st_atime
             source_size = os.stat(ds_file).st_size
-            
-            # script will update accessed ts for write access volume in macOS
-            # when it reads contents of the file
-            source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
             
             try:
                 source_birth_time = os.stat(ds_file).st_birthtime
