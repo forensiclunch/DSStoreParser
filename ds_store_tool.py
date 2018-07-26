@@ -25,7 +25,7 @@ from time import (gmtime, strftime)
 import datetime
 from ds_store_parser import ds_store_handler
 
-__VERSION__ = "0.1.1"
+__VERSION__ = "0.1.2"
 
 
 def get_arguments():
