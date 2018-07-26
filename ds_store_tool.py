@@ -77,31 +77,39 @@ def main():
         file_io = open(ds_file, "rb")
         try:
             ds_handler = ds_store_handler.DsStoreHandler(
-                file_io, ds_file
+                file_io, 
+                ds_file
             )
+        # When handler cannot parse ds, print exception as row
         except Exception as exp:
             source_mod_time = os.stat(ds_file).st_mtime
             source_create_time = os.stat(ds_file).st_ctime
             source_acc_time = os.stat(ds_file).st_atime
             source_size = os.stat(ds_file).st_size
+            
+            # script will update accessed ts for write access volume in macOS
+            # when it reads contents of the file
+            source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
+            
             try:
-                # Account for parsing within Mac
                 source_birth_time = os.stat(ds_file).st_birthtime
             except:
-                # when birthtime not available
                 source_birth_time = os.stat(ds_file).st_ctime
-            print '{0}\t\t\t\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(exp, 
+            print '{0}\t\t\t\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(
+                exp, 
                 ds_file,
                 str(datetime.datetime.utcfromtimestamp(source_mod_time)),
                 str(datetime.datetime.utcfromtimestamp(source_create_time)),
                 str(datetime.datetime.utcfromtimestamp(source_birth_time)),
-                str(datetime.datetime.utcfromtimestamp(source_acc_time)),
+                source_acc_time,
                 source_size
                 )
             continue
         for record in ds_handler:
             record_handler.write_record(
-                record, ds_file
+                record, 
+                ds_file, 
+                source_acc_time
             )
 
 
@@ -123,13 +131,13 @@ class RecordHandler(object):
         )
         self.writer.writeheader()
 
-    def write_record(self, record, ds_file):
+    def write_record(self, record, ds_file, source_acc_time):
         record_dict = record.as_dict()
         record_dict["source_file"] = ds_file
+        record_dict["source_acc_time"] = source_acc_time
         
         source_mod_time = os.stat(ds_file).st_mtime
         source_create_time = os.stat(ds_file).st_ctime
-        source_acc_time = os.stat(ds_file).st_atime
         source_size = os.stat(ds_file).st_size
         
         try:
@@ -142,7 +150,6 @@ class RecordHandler(object):
         record_dict["source_mod_time"] = str(datetime.datetime.utcfromtimestamp(source_mod_time))
         record_dict["source_create_time"] = str(datetime.datetime.utcfromtimestamp(source_create_time))
         record_dict["source_birth_time"] = str(datetime.datetime.utcfromtimestamp(source_birth_time))
-        record_dict["source_acc_time"] = str(datetime.datetime.utcfromtimestamp(source_acc_time))
         record_dict["source_size"] = source_size
         
         self.writer.writerow(
