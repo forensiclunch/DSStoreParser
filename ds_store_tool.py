@@ -73,13 +73,13 @@ def main():
         s_path.append(os.path.join(options.source, s_name))
         
     for ds_file in s_path:
-        file_io = open(ds_file, "rb")
-        
         source_acc_time = os.stat(ds_file).st_atime
-        
         # script will update accessed ts for write access volume in macOS
         # when it reads contents of the file
         source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
+        
+        file_io = open(ds_file, "rb")
+
         try:
             ds_handler = ds_store_handler.DsStoreHandler(
                 file_io, 
