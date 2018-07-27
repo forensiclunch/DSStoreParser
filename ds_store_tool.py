@@ -68,49 +68,52 @@ def main():
     if options.recrs:
         for root, dirnames, filenames in os.walk(options.source):
             for filename in fnmatch.filter(filenames, s_name):
-                s_path.append(os.path.join(root, filename))
+                parse(os.path.join(root, filename), record_handler)
     else:
-        s_path.append(os.path.join(options.source, s_name))
+        parse(os.path.join(options.source, s_name), record_handler)
         
-    for ds_file in s_path:
-        source_acc_time = os.stat(ds_file).st_atime
-        # script will update accessed ts for write access volume in macOS
-        # when it reads contents of the file
-        source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
-        
-        file_io = open(ds_file, "rb")
+def parse(ds_file, record_handler):
+    
+    source_acc_time = os.stat(ds_file).st_atime
+    # script will update accessed ts for write access volume in macOS
+    # when it reads contents of the file
+    source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
+    
+    file_io = open(ds_file, "rb")
 
+    try:
+        ds_handler = ds_store_handler.DsStoreHandler(
+            file_io, 
+            ds_file
+        )
+    # When handler cannot parse ds, print exception as row
+    except Exception as exp:
+        source_mod_time = os.stat(ds_file).st_mtime
+        source_create_time = os.stat(ds_file).st_ctime
+        source_size = os.stat(ds_file).st_size
+        
         try:
-            ds_handler = ds_store_handler.DsStoreHandler(
-                file_io, 
-                ds_file
+            source_birth_time = os.stat(ds_file).st_birthtime
+        except:
+            source_birth_time = os.stat(ds_file).st_ctime
+        print '{0}\t\t\t\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(
+            exp, 
+            ds_file,
+            str(datetime.datetime.utcfromtimestamp(source_mod_time)),
+            str(datetime.datetime.utcfromtimestamp(source_create_time)),
+            str(datetime.datetime.utcfromtimestamp(source_birth_time)),
+            source_acc_time,
+            source_size
             )
-        # When handler cannot parse ds, print exception as row
-        except Exception as exp:
-            source_mod_time = os.stat(ds_file).st_mtime
-            source_create_time = os.stat(ds_file).st_ctime
-            source_size = os.stat(ds_file).st_size
-            
-            try:
-                source_birth_time = os.stat(ds_file).st_birthtime
-            except:
-                source_birth_time = os.stat(ds_file).st_ctime
-            print '{0}\t\t\t\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(
-                exp, 
-                ds_file,
-                str(datetime.datetime.utcfromtimestamp(source_mod_time)),
-                str(datetime.datetime.utcfromtimestamp(source_create_time)),
-                str(datetime.datetime.utcfromtimestamp(source_birth_time)),
-                source_acc_time,
-                source_size
-                )
-            continue
+    try:
         for record in ds_handler:
             record_handler.write_record(
                 record, 
                 ds_file, 
                 source_acc_time
             )
+    except:
+        pass
 
 
 class RecordHandler(object):
@@ -135,6 +138,11 @@ class RecordHandler(object):
         record_dict = record.as_dict()
         record_dict["source_file"] = ds_file
         record_dict["source_acc_time"] = source_acc_time
+        record_file_path = os.path.join(
+            os.path.split(ds_file)[0],
+            record_dict["filename"]
+            )
+        record_dict["filename"] = self.CheckIfFileExists(record_file_path)
         
         source_mod_time = os.stat(ds_file).st_mtime
         source_create_time = os.stat(ds_file).st_ctime
@@ -152,9 +160,63 @@ class RecordHandler(object):
         record_dict["source_birth_time"] = str(datetime.datetime.utcfromtimestamp(source_birth_time))
         record_dict["source_size"] = source_size
         
-        self.writer.writerow(
-            record_dict
-        )
+        record_dict["code"] = self.update_descriptor(record_dict)
+        
+        self.writer.writerow(record_dict)
+        
+    def CheckIfFileExists(self, record_file_name):
+        if os.path.exists(record_file_name):
+            return record_file_name
+        else:
+            return "File not found: " + record_file_name
+        
+    def update_descriptor(self, record):
+        types_dict = {
+            "BKGD": "BKGD: Finder Folder Background Picture",
+            "ICVO": "ICVO: Unknown. Icon View?",
+            "Iloc": "Iloc: Icon Location and Index",
+            "LSVO": "LSVO: Unknown. List View?",
+            "bwsp": "bwsp: Finder Window Work Space Changed",
+            "cmmt": "cmmt: Spotlight Comments",
+            "dilc": "dilc: Desktop Icon Location",
+            "dscl": "dscl: Directory Disclosed (Expanded) in List View",
+            "fdsc": "fdsc: Directory Disclosed (Expanded) in Limited Finder Window",
+            "extn": "extn: File Extension",
+            "fwi0": "fwi0: Finder window information",
+            "fwsw": "fwsw: Finder window sidebar width",
+            "fwvh": "fwvh: Finder window sidebar height",
+            "GRP0": "GRP0: Arrange by",
+            "icgo": "icgo: Unknown",
+            "icsp": "icsp: Unknown",
+            "icvo": "icvo: Icon View Options",
+            "icvp": "icvp: Icon View Properties",
+            "icvt": "icvt: Icon View Text",
+            "info": "info: Unknown",
+            "logS": "logS: Logical size",
+            "lg1S": "lg1S: Logical size",
+            "lssp": "lssp: Unknown",
+            "lsvC": "lsvC: List View Unknown",
+            "lsvo": "lsvo: List View Options",
+            "lsvt": "lsvt: List View Text",
+            "lsvp": "lsvp: List View Properties",
+            "lsvP": "lsvP: List View Properties",
+            "modD": "modD: Modified date",
+            "moDD": "moDD: Modified date",
+            "phyS": "phyS: Physical size",
+            "ph1S": "ph1S: Physical size",
+            "pict": "pict: Unknown",
+            "vSrn": "vSrn: Opened Folder in new Tab",
+            "bRsV": "bRsV: Browse in Icon View",
+            "pBBk": "pBBk: Finder Folder Background Image Bookmark",
+            "vstl": "vstl: View Style",
+            "ptbL": "ptbL: Trash Put Back Location",
+            "ptbN": "ptbN: Trash Put Back Name"
+            }
+        try:
+            code_desc = types_dict[record["code"]]
+        except:
+            code_desc = "Unknown Code: {0}".format(record["code"])
+        return code_desc
 
 
 if __name__ == '__main__':
