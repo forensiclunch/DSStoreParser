@@ -28,10 +28,10 @@ class ILocCodec(object):
     @staticmethod
     def decode(bytesData):
         if isinstance(bytesData, bytearray):
-            x, y = struct.unpack_from(b'>II', bytes(bytesData[:8]))
+            x, y, z = struct.unpack_from(b'>III', bytes(bytesData[:16]))
         else:
-            x, y = struct.unpack(b'>II', bytesData[:8])
-        return (x, y)
+            x, y, z = struct.unpack(b'>III', bytesData[:16])
+        return (x, y, z)
 
 class PlistCodec(object):
     @staticmethod
@@ -56,10 +56,12 @@ class BookmarkCodec(object):
 # support a tiny subset of the possible entry types.
 codecs = {
     b'Iloc': ILocCodec,
+    b'dilc': ILocCodec,
     b'bwsp': PlistCodec,
     b'lsvp': PlistCodec,
     b'lsvP': PlistCodec,
     b'icvp': PlistCodec,
+    b'lsvC': PlistCodec,
     b'pBBk': BookmarkCodec
     }
 
