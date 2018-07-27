@@ -1,4 +1,4 @@
-from . import store as ds_store
+from ds_store import store as ds_store
 import datetime
 import binascii
 import collections
