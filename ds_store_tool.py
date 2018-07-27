@@ -68,11 +68,11 @@ def main():
     if options.recrs:
         for root, dirnames, filenames in os.walk(options.source):
             for filename in fnmatch.filter(filenames, s_name):
-                parse(os.path.join(root, filename), record_handler)
+                parse(os.path.join(root, filename), record_handler, options.source)
     else:
-        parse(os.path.join(options.source, s_name), record_handler)
+        parse(os.path.join(options.source, s_name), record_handler, options.source)
         
-def parse(ds_file, record_handler):
+def parse(ds_file, record_handler, source):
     
     source_acc_time = os.stat(ds_file).st_atime
     # script will update accessed ts for write access volume in macOS
@@ -86,6 +86,13 @@ def parse(ds_file, record_handler):
             file_io, 
             ds_file
         )
+        for record in ds_handler:
+            record_handler.write_record(
+                record, 
+                ds_file, 
+                source_acc_time, 
+                source
+            )
     # When handler cannot parse ds, print exception as row
     except Exception as exp:
         source_mod_time = os.stat(ds_file).st_mtime
@@ -96,7 +103,7 @@ def parse(ds_file, record_handler):
             source_birth_time = os.stat(ds_file).st_birthtime
         except:
             source_birth_time = os.stat(ds_file).st_ctime
-        print '{0}\t\t\t\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(
+        print '{0}\t\t\t\t\t\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format(
             exp, 
             ds_file,
             str(datetime.datetime.utcfromtimestamp(source_mod_time)),
@@ -105,15 +112,6 @@ def parse(ds_file, record_handler):
             source_acc_time,
             source_size
             )
-    try:
-        for record in ds_handler:
-            record_handler.write_record(
-                record, 
-                ds_file, 
-                source_acc_time
-            )
-    except:
-        pass
 
 
 class RecordHandler(object):
@@ -121,10 +119,12 @@ class RecordHandler(object):
         self.writer = csv.DictWriter(
             sys.stdout, delimiter="\t", lineterminator="\n",
             fieldnames=[
+            "file_exists", 
+            "ds_store_path", 
             "filename", 
-            "type", 
             "code", 
             "value", 
+            "type", 
             "source_file", 
             "source_mod_time",
             "source_create_time",
@@ -134,15 +134,27 @@ class RecordHandler(object):
         )
         self.writer.writeheader()
 
-    def write_record(self, record, ds_file, source_acc_time):
+    def write_record(self, record, ds_file, source_acc_time, source):
         record_dict = record.as_dict()
         record_dict["source_file"] = ds_file
+        
+        abs_path_len = len(os.path.split(source)[0])
+        
+        record_dict["ds_store_path"] = os.path.split(ds_file)[0][abs_path_len:]
         record_dict["source_acc_time"] = source_acc_time
+        
         record_file_path = os.path.join(
             os.path.split(ds_file)[0],
             record_dict["filename"]
             )
-        record_dict["filename"] = self.CheckIfFileExists(record_file_path)
+
+
+        if record_dict["code"] == "dilc" or record_dict["code"] == "Iloc":
+            record_dict["value"] = self.icon_handler(record_dict)
+        if record_dict["code"] == "vstl":
+            record_dict["value"] = self.style_handler(record_dict)
+            
+        record_dict["file_exists"] = self.CheckIfFileExists(record_file_path)
         
         source_mod_time = os.stat(ds_file).st_mtime
         source_create_time = os.stat(ds_file).st_ctime
@@ -166,9 +178,9 @@ class RecordHandler(object):
         
     def CheckIfFileExists(self, record_file_name):
         if os.path.exists(record_file_name):
-            return record_file_name
+            return "True."
         else:
-            return "File not found: " + record_file_name
+            return "False. File not found."
         
     def update_descriptor(self, record):
         types_dict = {
@@ -218,6 +230,38 @@ class RecordHandler(object):
             code_desc = "Unknown Code: {0}".format(record["code"])
         return code_desc
 
+    def icon_handler(self, record):
+
+        r_value_hor = record["value"][0]
+        r_value_ver = record["value"][1]
+        r_value_idx = record["value"][2]
+        if r_value_hor == 4294967295L:
+            r_value_hor = "Null"
+        if r_value_ver == 4294967295L:
+            r_value_ver = "Null"
+        if r_value_idx == 4294967295L:
+            r_value_idx = "Null"
+
+        icon_val = "Location: ({0}, {1}), Selected Index: {2}".format(
+            str(r_value_hor), 
+            str(r_value_ver), 
+            str(r_value_idx)
+        )
+        return icon_val
+            
+    def style_handler(self, record):
+        styles_dict = {
+            "": "Undefined",
+            "icnv": "icnv: Icon View",
+            "clmv": "clmv: Column View",
+            "Nlsv": "Nlsv: List View",
+            "Flwv": "Flwv: CoverFlow View"
+            }
+        try:
+            code_desc = styles_dict[record["value"]]
+        except:
+            code_desc = "Unknown Code: {0}".format(record["value"])
+        return code_desc
 
 if __name__ == '__main__':
     main()
