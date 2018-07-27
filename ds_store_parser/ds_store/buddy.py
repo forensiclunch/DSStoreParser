@@ -88,39 +88,6 @@ class Block(object):
                 return struct.unpack(fmt, data)
         else:
             return data
-
-    def write(self, data_or_format, *args):
-        if len(args):
-            data = struct.pack(data_or_format, *args)
-        else:
-            data = data_or_format
-
-        if self._pos + len(data) > self._size:
-            raise ValueError('Attempt to write past end of Block')
-
-        self._value[self._pos:self._pos + len(data)] = data
-        self._pos += len(data)
-        
-        self._dirty = True
-
-    def insert(self, data_or_format, *args):
-        if len(args):
-            data = struct.pack(data_or_format, *args)
-        else:
-            data = data_or_format
-
-        del self._value[-len(data):]
-        self._value[self._pos:self._pos] = data
-        self._pos += len(data)
-
-        self._dirty = True
-
-    def delete(self, size):
-        if self._pos + size > self._size:
-            raise ValueError('Attempt to delete past end of Block')
-        del self._value[self._pos:self._pos + size]
-        self._value += b'\0' * size
-        self._dirty = True
         
     def __str__(self):
         return binascii.b2a_hex(self._value)
@@ -176,61 +143,6 @@ class Allocator(object):
             f = open(file_or_name, mode)
         else:
             f = file_or_name
-
-        if 'w' in mode:
-            # Create an empty file in this case
-            f.truncate()
-            
-            # An empty root block needs 1264 bytes:
-            #
-            #     0  4       offset count
-            #     4  4       unknown
-            #     8  4       root block offset (2048)
-            #    12  255 * 4 padding (offsets are in multiples of 256)
-            #  1032  4       toc count (0)
-            #  1036  228     free list
-            #  total 1264
-            
-            # The free list will contain the following:
-            #
-            #     0  5 * 4   no blocks of width less than 5
-            #    20  6 * 8   1 block each of widths 5 to 10
-            #    68  4       no blocks of width 11 (allocated for the root)
-            #    72  19 * 8  1 block each of widths 12 to 30
-            #   224  4       no blocks of width 31
-            # total  228
-            #
-            # (The reason for this layout is that we allocate 2**5 bytes for
-            #  the header, which splits the initial 2GB region into every size
-            #  below 2**31, including *two* blocks of size 2**5, one of which
-            #  we take.  The root block itself then needs a block of size
-            #  2**11.  Conveniently, each of these initial blocks will be
-            #  located at offset 2**n where n is its width.)
-
-            # Write the header
-            header = struct.pack(b'>I4sIII16s',
-                                 1, b'Bud1',
-                                 2048, 1264, 2048,
-                                 b'\x00\x00\x10\x0c'
-                                 b'\x00\x00\x00\x87'
-                                 b'\x00\x00\x20\x0b'
-                                 b'\x00\x00\x00\x00')
-            f.write(header)
-            f.write(b'\0' * 2016)
-            
-            # Write the root block
-            free_list = [struct.pack(b'>5I', 0, 0, 0, 0, 0)]
-            for n in range(5, 11):
-                free_list.append(struct.pack(b'>II', 1, 2**n))
-            free_list.append(struct.pack(b'>I', 0))
-            for n in range(12, 31):
-                free_list.append(struct.pack(b'>II', 1, 2**n))
-            free_list.append(struct.pack(b'>I', 0))
-            
-            root = b''.join([struct.pack(b'>III', 1, 0, 2048 | 5),
-                            struct.pack(b'>I', 0) * 255,
-                            struct.pack(b'>I', 0)] + free_list)
-            f.write(root)
 
         return Allocator(f)
 
