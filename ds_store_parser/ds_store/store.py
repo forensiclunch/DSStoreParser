@@ -21,32 +21,56 @@ from . import buddy
 
 class ILocCodec(object):
     @staticmethod
-    def encode(point):
-        return struct.pack(b'>IIII', point[0], point[1],
-                           0xffffffff, 0xffff0000)
-
-    @staticmethod
     def decode(bytesData):
         if isinstance(bytesData, bytearray):
             x, y, z = struct.unpack_from(b'>III', bytes(bytesData[:16]))
         else:
             x, y, z = struct.unpack(b'>III', bytesData[:16])
-        return (x, y, z)
+        h_str = str(bytesData).encode('hex')
+        h_array = (
+            h_str[:8],
+            h_str[8:16],
+            h_str[16:24],
+            h_str[24:32]
+        )
+        return (x, y, z, h_array)
+        
+class DilcCodec(object):
+    @staticmethod
+    def decode(bytesData):
+        if isinstance(bytesData, bytearray):
+            u, v, w, x, y, z = struct.unpack_from(b'>IIIIII', bytes(bytesData[:32]))
+        else:
+            u, v, w, x, y, z = struct.unpack(b'>IIIIII', bytesData[:32])
+        h_str = str(bytesData).encode('hex')
+        if int(h_str[16:24], 16) > 65535:
+            h_pos = "IconPosFromRight: " + str(4294967295 - int(h_str[16:24], 16))
+        else:
+            h_pos = "IconPosFromLeft: " + str(int(h_str[16:24], 16))
+            
+        if int(h_str[24:32], 16) > 65535:
+            v_pos = "IconPosFromBottom: " + str(4294967295 - int(h_str[24:32], 16))
+        else:
+            v_pos = "IconPosFromTop: " + str(int(h_str[24:32], 16))
+        h_array = (
+            "Unk1: "+h_str[:8],
+            "GridQuadrant: "+str(int(h_str[8:12],16)),        # short?: Indicates the quadrant on the screen the icon is located. 1=top right, 2=bottom right, 3=bottom left, 4=top left
+            "Unk2: "+h_str[12:16],       # short?: Unknown. Values other than 0 have been observed
+            h_pos,       # position from right/left of screen. 0xFF indicates right position
+            v_pos,       # position from top/bottom of screen. 0xFF indicates bottom position
+            "GridIconPosFromLeft: "+str(int(h_str[32:40], 16)),       # position from left
+            "GridIconPosFromTop: "+str(int(h_str[40:48], 16)),       # position from top
+            "Unk3: "+h_str[48:56],
+            "Unk4: "+h_str[56:64]
+        )
+        return str(h_array).replace("', u'",", ").replace("'","").replace("(u","(")
 
 class PlistCodec(object):
-    @staticmethod
-    def encode(plist):
-        return biplist.writePlistToString(plist)
-
     @staticmethod
     def decode(bytes):
         return biplist.readPlistFromString(bytes)
 
 class BookmarkCodec(object):
-    @staticmethod
-    def encode(bmk):
-        return bmk.to_bytes()
-
     @staticmethod
     def decode(bytes):
         return mac_alias.Bookmark.from_bytes(bytes)
@@ -56,7 +80,7 @@ class BookmarkCodec(object):
 # support a tiny subset of the possible entry types.
 codecs = {
     b'Iloc': ILocCodec,
-    b'dilc': ILocCodec,
+    b'dilc': DilcCodec,
     b'bwsp': PlistCodec,
     b'lsvp': PlistCodec,
     b'lsvP': PlistCodec,
