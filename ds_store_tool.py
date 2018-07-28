@@ -241,12 +241,14 @@ class RecordHandler(object):
             r_value_ver = "Null"
         if r_value_idx == 4294967295L:
             r_value_idx = "Null"
-
-        icon_val = "Location: ({0}, {1}), Selected Index: {2}".format(
-            str(r_value_hor), 
-            str(r_value_ver), 
-            str(r_value_idx)
-        )
+        if record["code"] == "Iloc":
+            icon_val = "Location: ({0}, {1}), Selected Index: {2}".format(
+                str(r_value_hor), 
+                str(r_value_ver), 
+                str(r_value_idx)
+            )
+        if record["code"] == "dilc":
+            icon_val = record["value"]
         return icon_val
             
     def style_handler(self, record):
