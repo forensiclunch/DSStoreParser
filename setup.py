@@ -10,7 +10,7 @@ except ImportError:
 
 setup(
     name='ds_store_parser',
-    version='0.1.1',
+    version='0.1.2',
     description='A .DS_Store Parser',
     author = 'G-C Partners, LLC',
     author_email = 'nibrahim@g-cpartners.com',
@@ -19,13 +19,13 @@ setup(
     zip_safe=False,
     include_package_data=True,
     install_requires=[
-        'ds_store'
+        'mac_alias'
     ],
     packages=find_packages(
         '.'
     ),
     scripts=[
-        u'scripts/ds_store_tool.py',
+        u'./ds_store_tool.py',
     ],
     classifiers=[
         'Programming Language :: Python',
