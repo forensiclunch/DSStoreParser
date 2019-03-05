@@ -35,6 +35,26 @@ class ILocCodec(object):
         )
         return (x, y, z, h_array)
         
+class fwi0Codec(object):
+    @staticmethod
+    def decode(bytesData):
+    
+        # 00be00b8023f03bf69636e7600010000
+        if isinstance(bytesData, bytearray):
+            w, x, y, z = struct.unpack_from(b'>HHHH', bytes(bytesData[:16]))
+        else:
+            w, x, y, z = struct.unpack(b'>HHHH', bytesData[:16])
+        h_str = str(bytesData).encode('hex')
+        h_array = (
+            'top: ' + str(w),
+            'left: ' + str(x),
+            'bottom: ' + str(y),
+            'right: ' + str(z),
+            'view_type: ' + h_str[16:24].decode('hex'),
+            'Unknown: ' + h_str[24:32]
+        )
+        return str(h_array).replace("', u'",", ").replace("'","").replace("(u","(")
+        
 class DilcCodec(object):
     @staticmethod
     def decode(bytesData):
@@ -80,9 +100,11 @@ class BookmarkCodec(object):
 # support a tiny subset of the possible entry types.
 codecs = {
     b'Iloc': ILocCodec,
+    b'fwi0': fwi0Codec,
     b'dilc': DilcCodec,
     b'bwsp': PlistCodec,
     b'lsvp': PlistCodec,
+    b'glvp': PlistCodec,
     b'lsvP': PlistCodec,
     b'icvp': PlistCodec,
     b'lsvC': PlistCodec,
