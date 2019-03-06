@@ -30,6 +30,7 @@ __VERSION__ = "0.2.0"
 folder_access_report = None
 other_info_report = None
 finder_window_change_report = None
+all_records_ds_store_report = None
 
 def get_arguments():
     """Get needed options for the cli parser interface"""
@@ -66,7 +67,7 @@ def main():
     options = arguments.parse_args()
     s_path = []
     s_name = u'.DS_Store'
-    global folder_access_report, other_info_report, finder_window_change_report
+    global folder_access_report, other_info_report, finder_window_change_report, all_records_ds_store_report
     opts_source = options.source
     opts_out = options.outdir
     
@@ -81,6 +82,10 @@ def main():
             )
         other_info_report = open(
                 os.path.join(opts_out, 'DS_Store-Miscellaneous_Info_Report.tsv'),
+                'wb'
+            )
+        all_records_ds_store_report = open(
+                os.path.join(opts_out, 'DS_Store-All_Parsed_Report.tsv'),
                 'wb'
             )
     except:
@@ -148,7 +153,7 @@ def commandline_arg(bytestring):
 
 class RecordHandler(object):
     def __init__(self):
-        global folder_access_report, other_info_report, finder_window_change_report
+        global folder_access_report, other_info_report, finder_window_change_report, all_records_ds_store_report
         fields = [
             u"path", 
             u"value", 
@@ -232,6 +237,12 @@ class RecordHandler(object):
             fieldnames=fields
         )
         self.oi_writer.writeheader()
+        
+        self.ar_writer = csv.DictWriter(
+            all_records_ds_store_report, delimiter="\t", lineterminator="\n",
+            fieldnames=fields
+        )
+        self.ar_writer.writeheader()
 
     def write_record(self, record, ds_file, source, source_birth_time, source_mod_time, source_chg_time, source_acc_time):
         record_dict = record.as_dict()
@@ -258,6 +269,8 @@ class RecordHandler(object):
         record_dict["source_create_time"] = source_birth_time + '[UTC]'
         record_dict["source_size"] = os.stat(ds_file).st_size
         record_dict["value"] = unicode(self.update_descriptor(record_dict)) + str(record_dict["value"])
+        
+        self.ar_writer.writerow(record_dict)
         
         if code in self.other_info_codes:
             self.oi_writer.writerow(record_dict)
