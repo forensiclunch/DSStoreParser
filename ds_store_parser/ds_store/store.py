@@ -19,32 +19,65 @@ except NameError:
 
 from . import buddy
 
-class ILocCodec(object):
+class IlocCodec(object):
     @staticmethod
     def decode(bytesData):
         if isinstance(bytesData, bytearray):
             x, y, z = struct.unpack_from(b'>III', bytes(bytesData[:16]))
         else:
             x, y, z = struct.unpack(b'>III', bytesData[:16])
+            
         h_str = str(bytesData).encode('hex')
-        h_array = (
-            h_str[:8],
-            h_str[8:16],
-            h_str[16:24],
+        
+        r_value_hor = x
+        r_value_ver = y
+        r_value_idx = z
+        if r_value_hor == 4294967295L:
+            r_value_hor = u"Null"
+        if r_value_ver == 4294967295L:
+            r_value_ver = u"Null"
+        if r_value_idx == 4294967295L:
+            r_value_idx = u"Null"
+
+        val = "Location: ({0}, {1}), Selected Index: {2}, Unknown: {3}".format(
+            unicode(r_value_hor), 
+            unicode(r_value_ver), 
+            unicode(r_value_idx),
             h_str[24:32]
         )
-        return (x, y, z, h_array)
-        
-class fwi0Codec(object):
+
+        return val
+
+class IcvoCodec(object):
     @staticmethod
     def decode(bytesData):
-    
-        # 00be00b8023f03bf69636e7600010000
+        h_str = str(bytesData).encode('hex')
+        i_type = h_str[:8].decode('hex')
+        p_size = str(int(h_str[8:12], 16))
+        g_align = h_str[12:20].decode('hex')
+        g_align_loc = h_str[20:28].decode('hex')
+        unknown = str(h_str[28:])
+        
+        val = "Type: {0}, IconPixelSize: {1}, GridAlign: {2}, GridAlignTo: {3}, Unknown: {4}".format(
+            i_type,
+            p_size,
+            g_align,
+            g_align_loc,
+            unknown
+        )
+        
+        return val
+        
+class Fwi0Codec(object):
+    @staticmethod
+    def decode(bytesData):
         if isinstance(bytesData, bytearray):
             w, x, y, z = struct.unpack_from(b'>HHHH', bytes(bytesData[:16]))
         else:
             w, x, y, z = struct.unpack(b'>HHHH', bytesData[:16])
+            
         h_str = str(bytesData).encode('hex')
+        
         h_array = (
             'top: ' + str(w),
             'left: ' + str(x),
@@ -53,7 +86,10 @@ class fwi0Codec(object):
             'view_type: ' + h_str[16:24].decode('hex'),
             'Unknown: ' + h_str[24:32]
         )
-        return str(h_array).replace("', u'",", ").replace("'","").replace("(u","(")
+        
+        val = str(h_array).replace("', u'",", ").replace("'","").replace("(u","(")
+        
+        return val
         
 class DilcCodec(object):
     @staticmethod
@@ -83,7 +119,10 @@ class DilcCodec(object):
             "Unk3: "+h_str[48:56],
             "Unk4: "+h_str[56:64]
         )
-        return str(h_array).replace("', u'",", ").replace("'","").replace("(u","(")
+        
+        val = str(h_array).replace("', u'",", ").replace("'","").replace("(u","(")
+        
+        return val
 
 class PlistCodec(object):
     @staticmethod
@@ -99,8 +138,9 @@ class BookmarkCodec(object):
 # .DS_Store file.  This is really a convenience, and we currently only
 # support a tiny subset of the possible entry types.
 codecs = {
-    b'Iloc': ILocCodec,
-    b'fwi0': fwi0Codec,
+    b'Iloc': IlocCodec,
+    b'icvo': IcvoCodec,
+    b'fwi0': Fwi0Codec,
     b'dilc': DilcCodec,
     b'bwsp': PlistCodec,
     b'lsvp': PlistCodec,
@@ -186,89 +226,6 @@ class DSStoreEntry(object):
                 or (sfl == ofl
                     and self.code <= other.code))
 
-    def __eq__(self, other):
-        if not isinstance(other, DSStoreEntry):
-            raise TypeError('Can only compare against other DSStoreEntry objects')
-        sfl = self.filename.lower()
-        ofl = other.filename.lower()
-        return (sfl == ofl
-                and self.code == other.code)
-
-    def __ne__(self, other):
-        if not isinstance(other, DSStoreEntry):
-            raise TypeError('Can only compare against other DSStoreEntry objects')
-        sfl = self.filename.lower()
-        ofl = other.filename.lower()
-        return (sfl != ofl
-                or self.code != other.code)
-
-    def __gt__(self, other):
-        if not isinstance(other, DSStoreEntry):
-            raise TypeError('Can only compare against other DSStoreEntry objects')
-        sfl = self.filename.lower()
-        ofl = other.filename.lower()
-        
-        selfCode = self.code
-        if str != bytes and type(selfCode) is bytes:
-            selfCode = selfCode.decode('utf-8')
-        otherCode = other.code
-        if str != bytes and type(otherCode) is bytes:
-            otherCode = otherCode.decode('utf-8')
-        
-        return (sfl > ofl or (sfl == ofl and selfCode > otherCode))
-
-    def __ge__(self, other):
-        if not isinstance(other, DSStoreEntry):
-            raise TypeError('Can only compare against other DSStoreEntry objects')
-        sfl = self.filename.lower()
-        ofl = other.filename.lower()
-        return (sfl > ofl
-                or (sfl == ofl
-                    and self.code >= other.code))
-
-    def __cmp__(self, other):
-        if not isinstance(other, DSStoreEntry):
-            raise TypeError('Can only compare against other DSStoreEntry objects')
-        r = cmp(self.filename.lower(), other.filename.lower())
-        if r:
-            return r
-        return cmp(self.code, other.code)
-    
-    def byte_length(self):
-        """Compute the length of this entry, in bytes"""
-        utf16 = self.filename.encode('utf-16be')
-        l = 4 + len(utf16) + 8
-
-        if isinstance(self.type, unicode):
-            entry_type = self.type.encode('latin_1')
-            value = self.value
-        elif isinstance(self.type, (bytes, str)):
-            entry_type = self.type
-            value = self.value
-        else:
-            entry_type = b'blob'
-            value = self.type.encode(self.value)
-            
-        if entry_type == b'bool':
-            l += 1
-        elif entry_type == b'long' or entry_type == b'shor':
-            l += 4
-        elif entry_type == b'blob':
-            l += 4 + len(value)
-        elif entry_type == b'ustr':
-            utf16 = value.encode('utf-16be')
-            l += 4 + len(utf16)
-        elif entry_type == b'type':
-            l += 4
-        elif entry_type == b'comp' or entry_type == b'dutc':
-            l += 8
-        else:
-            raise ValueError('Unknown type code "%s"' % entry_type)
-
-        return l
-    
-    def __repr__(self):
-        return '<%s %s>' % (self.filename, self.code)
 
 class DSStore(object):
     """Python interface to a ``.DS_Store`` file.  Works by manipulating the file
@@ -322,24 +279,6 @@ class DSStore(object):
     def _get_block(self, number):
         return self._store.get_block(number)
 
-    def flush(self):
-        """Flush any dirty data back to the file."""
-        if self._dirty:
-            self._dirty = False
-
-            with self._get_block(self._superblk) as s:
-                s.write(b'>IIIII', self._rootnode, self._levels, self._records,
-                        self._nodes, self._page_size)
-        self._store.flush()
-
-    def close(self):
-        """Flush dirty data and close the underlying file."""
-        self.flush()
-        self._store.close()
-        
-    def __enter__(self):
-        return self
-
     # Iterate over the tree, starting at `node'
     def _traverse(self, node):
         if node is None:
@@ -359,68 +298,7 @@ class DSStore(object):
                 for n in range(count):
                     e = DSStoreEntry.read(block)
                     yield e
-        
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
-        
-    def __len__(self):
-        return self._records
 
     def __iter__(self):
         return self._traverse(self._rootnode)
-
-    class Partial(object):
-        """This is used to implement indexing."""
-        def __init__(self, store, filename):
-            self._store = store
-            self._filename = filename
-
-        def __getitem__(self, code):
-            if code is None:
-                raise KeyError('no such key - [%s][None]' % self._filename)
-
-            if not isinstance(code, bytes):
-                code = code.encode('latin_1')
-
-            try:
-                item = next(self._store.find(self._filename, code))
-            except StopIteration:
-                raise KeyError('no such key - [%s][%s]' % (self._filename,
-                               code))
-
-            if not isinstance(item.type, (bytes, str, unicode)):
-                return item.value
-            
-            return (item.type, item.value)
-            
-        def __setitem__(self, code, value):
-            if code is None:
-                raise KeyError('bad key - [%s][None]' % self._filename)
-
-            if not isinstance(code, bytes):
-                code = code.encode('latin_1')
-
-            codec = codecs.get(code, None)
-            if codec:
-                entry_type = codec
-                entry_value = value
-            else:
-                entry_type = value[0]
-                entry_value = value[1]
-            
-            self._store.insert(DSStoreEntry(self._filename, code,
-                                             entry_type, entry_value))
-
-        def __delitem__(self, code):
-            if code is None:
-                raise KeyError('no such key - [%s][None]' % self._filename)
-
-            self._store.delete(self._filename, code)
-
-        def __iter__(self):
-            for item in self._store.find(self._filename):
-                yield item
-
-    def __getitem__(self, filename):
-        return self.Partial(self, filename)
     
