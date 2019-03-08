@@ -2,6 +2,7 @@ from ds_store import store as ds_store
 import datetime
 import binascii
 import collections
+import struct
 
 
 class DsStoreHandler(object):
@@ -43,16 +44,27 @@ class DsStoreRecord(object):
 
         if hasattr(self.ds_store_entry.type, "__name__"):
             record_dict["type"] = self.ds_store_entry.type.__name__
-
-        if record_dict["type"] == "blob":
+        
+        
+        if record_dict["type"] == "blob" and record_dict["code"].lower() =='modd':           
             record_dict["value"] = binascii.hexlify(
                 record_dict["value"]
             )
+            epoch_dt = datetime.datetime(1970,1,1) 
+            parsed_dt = epoch_dt + datetime.timedelta(microseconds=int(record_dict["value"][::-1],16) / 1000. )
+            record_dict["value"] = parsed_dt
+            
+        elif record_dict["type"] == "blob":
+            record_dict["value"] = binascii.hexlify(
+                record_dict["value"]
+            )
+            
         elif record_dict["type"] == 'dutc':
             epoch_dt = datetime.datetime(1904, 1, 1)
             parsed_dt = epoch_dt + datetime.timedelta(
                 seconds=int(self.ds_store_entry.value) / 65536
             )
             record_dict["value"] = parsed_dt
+
 
         return record_dict
