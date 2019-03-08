@@ -29,7 +29,6 @@ __VERSION__ = "0.2.0"
 
 folder_access_report = None
 other_info_report = None
-finder_window_change_report = None
 all_records_ds_store_report = None
 
 def get_arguments():
@@ -66,18 +65,14 @@ def main():
     arguments = get_arguments()
     options = arguments.parse_args()
     s_path = []
-    s_name = u'.DS_Store'
-    global folder_access_report, other_info_report, finder_window_change_report, all_records_ds_store_report
+    s_name = u'*.DS_Store*'
+    global folder_access_report, other_info_report, all_records_ds_store_report
     opts_source = options.source
     opts_out = options.outdir
     
     try:
         folder_access_report = open(
                 os.path.join(opts_out, 'DS_Store-Folder_Access_Report.tsv'),
-                'wb'
-            )
-        finder_window_change_report = open(
-                os.path.join(opts_out, 'DS_Store-Finder_Window_Changed_Report.tsv'),
                 'wb'
             )
         other_info_report = open(
@@ -88,10 +83,10 @@ def main():
                 os.path.join(opts_out, 'DS_Store-All_Parsed_Report.tsv'),
                 'wb'
             )
-    except:
-        print 'Unable to proceed. Error creating reports.'
+    except Exception as exp:
+        print 'Unable to proceed. Error creating reports. Exceptions: {}'.format(exp)
         sys.exit(0)
-    
+
     # Accounting for paths ending with \"
     if opts_source[-1:] == '"':
         opts_source = opts_source[:-1]
@@ -105,6 +100,7 @@ def main():
 def parse(ds_file, record_handler, source):
     # script will update accessed ts for write access volume in macOS
     # when it reads contents of the file
+    ds_handler = None
     source_acc_time = os.stat(ds_file).st_atime
     source_acc_time = str(datetime.datetime.utcfromtimestamp(source_acc_time))
     source_mod_time = os.stat(ds_file).st_mtime
@@ -129,6 +125,14 @@ def parse(ds_file, record_handler, source):
             file_io, 
             ds_file
         )
+    # When handler cannot parse ds, print exception as row
+    except Exception as exp:
+        print 'ERROR: {} for file {}'.format(
+            exp,
+            ds_file.encode('utf-8', errors='replace')
+            )
+            
+    if ds_handler:
         for record in ds_handler:
             record_handler.write_record(
                 record, 
@@ -139,13 +143,6 @@ def parse(ds_file, record_handler, source):
                 source_chg_time,
                 source_acc_time
             )
-    # When handler cannot parse ds, print exception as row
-    except Exception as exp:        
-        
-        print 'ERROR: {} for file {}'.format(
-            exp,
-            source
-            )
             
 def commandline_arg(bytestring):
     unicode_string = bytestring.decode(sys.getfilesystemencoding())
@@ -153,9 +150,10 @@ def commandline_arg(bytestring):
 
 class RecordHandler(object):
     def __init__(self):
-        global folder_access_report, other_info_report, finder_window_change_report, all_records_ds_store_report
+        global folder_access_report, other_info_report, all_records_ds_store_report
         fields = [
-            u"path", 
+            u"ds_store_path_and_record_filename", 
+            u"filename", 
             u"value", 
             u"type", 
             u"code", 
@@ -167,7 +165,8 @@ class RecordHandler(object):
             u"source_file"]
             
         # Codes that do not always mean that a folder was opened
-        # Some codes are for informational purposes
+        # Some codes are for informational purposes and may indicate
+        # the parent was opened not the path reported
         self.other_info_codes = [
             u"Iloc",
             u"dilc",
@@ -183,15 +182,12 @@ class RecordHandler(object):
             u"ptbN"
         ]
         
-        # Codes that explicitly indicate a folder was opened
-        self.opened_folder_codes = [
+        # Codes that indicate the finder window changed for an open folder
+        # or the folders were opened.
+        self.folder_interactions = [
             u"dscl",
             u"fdsc",
-            u"vSrn"
-        ]
-        
-        # Codes that indicate the finder window changed for an open folder
-        self.opened_folder_finder_window_changes = [
+            u"vSrn",
             u"BKGD",
             u"ICVO",
             u"LSVO",
@@ -221,13 +217,13 @@ class RecordHandler(object):
             
             
         self.fa_writer = csv.DictWriter(
-            folder_access_report, delimiter="\t", lineterminator="\n",
+            all_records_ds_store_report, delimiter="\t", lineterminator="\n",
             fieldnames=fields
         )
         self.fa_writer.writeheader()
         
         self.fc_writer = csv.DictWriter(
-            finder_window_change_report, delimiter="\t", lineterminator="\n",
+            folder_access_report, delimiter="\t", lineterminator="\n",
             fieldnames=fields
         )
         self.fc_writer.writeheader()
@@ -237,12 +233,6 @@ class RecordHandler(object):
             fieldnames=fields
         )
         self.oi_writer.writeheader()
-        
-        self.ar_writer = csv.DictWriter(
-            all_records_ds_store_report, delimiter="\t", lineterminator="\n",
-            fieldnames=fields
-        )
-        self.ar_writer.writeheader()
 
     def write_record(self, record, ds_file, source, source_birth_time, source_mod_time, source_chg_time, source_acc_time):
         record_dict = record.as_dict()
@@ -252,31 +242,29 @@ class RecordHandler(object):
         abs_path_len = len(os.path.split(source)[0])
         
         record_dict["filename"] = record_dict["filename"].replace('\x0d','').replace('\x0a','')
-        record_dict["path"] = os.path.split(ds_file)[0][abs_path_len:].replace('\\','/') + '/' + record_dict["filename"]
-        del record_dict["filename"]
         
-        if record_dict["path"][:1] != '/':
-            record_dict["path"] = '/' + record_dict["path"]
+        record_dict["filename"] = record_dict["filename"].replace('\r','').replace('\n','')
+        record_dict["ds_store_path_and_record_filename"] = os.path.join(os.path.split(ds_file)[0][abs_path_len:], record_dict["filename"]).replace('\\','/')
+        record_dict["ds_store_path_and_record_filename"] = record_dict["ds_store_path_and_record_filename"].replace('\r','').replace('\n','')
+        
+        if record_dict["ds_store_path_and_record_filename"][:1] != '/':
+            record_dict["ds_store_path_and_record_filename"] = '/' + record_dict["ds_store_path_and_record_filename"]
 
-        if record_dict["code"] == "dilc" or record_dict["code"] == "Iloc":
-            record_dict["value"] = unicode(self.icon_handler(record_dict))
         if record_dict["code"] == "vstl":
             record_dict["value"] = unicode(self.style_handler(record_dict))
 
         record_dict["source_chg_time"] = source_chg_time
-        record_dict["source_acc_time"] = source_acc_time + '[UTC]'
-        record_dict["source_mod_time"] = source_mod_time + '[UTC]'
-        record_dict["source_create_time"] = source_birth_time + '[UTC]'
+        record_dict["source_acc_time"] = source_acc_time + ' [UTC]'
+        record_dict["source_mod_time"] = source_mod_time + ' [UTC]'
+        record_dict["source_create_time"] = source_birth_time + ' [UTC]'
         record_dict["source_size"] = os.stat(ds_file).st_size
         record_dict["value"] = unicode(self.update_descriptor(record_dict)) + str(record_dict["value"])
         
-        self.ar_writer.writerow(record_dict)
+        self.fa_writer.writerow(record_dict)
         
         if code in self.other_info_codes:
             self.oi_writer.writerow(record_dict)
-        elif code in self.opened_folder_codes:
-            self.fa_writer.writerow(record_dict)
-        elif code in self.opened_folder_finder_window_changes:
+        elif code in self.folder_interactions:
             self.fc_writer.writerow(record_dict)
         else:
             print 'Code not accounted for.', code
@@ -286,14 +274,14 @@ class RecordHandler(object):
             "BKGD": u"Finder Folder Background Picture Changed: ",
             "ICVO": u"ICVO. Unknown. Icon View Options?: ",
             "Iloc": u"Icon Location or Index Changed: ",
-            "LSVO": u"Unknown. List View Options? Changed: ",
+            "LSVO": u"LSVO. Unknown. List View Options? Changed: ",
             "bwsp": u"Finder Window Work Space Changed",
             "cmmt": u"Spotlight Comments Changed: ",
             "dilc": u"Desktop Icon Location Changed: ",
             "dscl": u"Is Directory Expanded in List View: ",
             "fdsc": u"Is Directory Expanded in Limited Finder Window: ",
-            "extn": u"eFile Extension: ",
-            "fwi0": u"Finder Window Information Changed",
+            "extn": u"File Extension: ",
+            "fwi0": u"Finder Window Information Changed: ",
             "fwsw": u"Finder window sidebar widt changed: ",
             "fwvh": u"Finder window sidebar height changed: ",
             "glvp": u"Gallery View Properties Changed: ",
@@ -304,18 +292,18 @@ class RecordHandler(object):
             "icvp": u"Icon View Properties Changed: ",
             "icvt": u"Icon View Text Changed: ",
             "info": u"info: Unknown. Finder Info?:",
-            "logS": u"Logical size updated: ",
-            "lg1S": u"Logical size updated: ",
+            "logS": u"Logical size gathered: ",
+            "lg1S": u"Logical size gathered: ",
             "lssp": u"lssp. Unknown. List view scroll position changed?: ",
             "lsvC": u"List View Columns Changed: ",
             "lsvo": u"List View Options Changed: ",
             "lsvt": u"List View Text Size Changed: ",
             "lsvp": u"List View Properties Changed: ",
             "lsvP": u"List View Properties Changed: ",
-            "modD": u"Modified date updated: ",
-            "moDD": u"Modified date updated: ",
-            "phyS": u"Physical size updated: ",
-            "ph1S": u"Physical size updated: ",
+            "modD": u"Modified date gathered: ",
+            "moDD": u"Modified date gathered: ",
+            "phyS": u"Physical size gathered: ",
+            "ph1S": u"Physical size gathered: ",
             "pict": u"pict. Unknown. Background image changed?: ",
             "vSrn": u"Opened Folder in new tab: ",
             "bRsV": u"Browse in Selected View: ",
@@ -329,35 +317,14 @@ class RecordHandler(object):
         except:
             code_desc = u"Unknown Code: {0}".format(record["code"])
         return code_desc
-
-    def icon_handler(self, record):
-
-        r_value_hor = record["value"][0]
-        r_value_ver = record["value"][1]
-        r_value_idx = record["value"][2]
-        if r_value_hor == 4294967295L:
-            r_value_hor = u"Null"
-        if r_value_ver == 4294967295L:
-            r_value_ver = u"Null"
-        if r_value_idx == 4294967295L:
-            r_value_idx = u"Null"
-        if record["code"] == u"Iloc":
-            icon_val = "Location: ({0}, {1}), Selected Index: {2}".format(
-                unicode(r_value_hor), 
-                unicode(r_value_ver), 
-                unicode(r_value_idx)
-            )
-        if record["code"] == u"dilc":
-            icon_val = record["value"]
-        return icon_val
             
     def style_handler(self, record):
         styles_dict = {
             '\x00\x00\x00\x00': u"view type null",
-            "none": u"View type unselected",
+            "none": u"View Type Unselected",
             "icnv": u"icnv: Icon View",
             "clmv": u"clmv: Column View",
-            "Nlsv": u"Nlsv: List View",
+            "Nlsv": u"Nlsv: List View Applied",
             "glyv": u"glyv: Gallery View",
             "Flwv": u"Flwv: CoverFlow View"
             }
