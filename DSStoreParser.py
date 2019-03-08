@@ -33,8 +33,8 @@ all_records_ds_store_report = None
 
 def get_arguments():
     """Get needed options for the cli parser interface"""
-    usage = """.DS_Store Parser CLI tool. v{}""".format(__VERSION__)
-
+    usage = """DSStoreParser CLI tool. v{}""".format(__VERSION__)
+    usage = usage + """\n\nSearch for .DS_Store files in the path provided and parse them."""
     argument_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=(usage)
@@ -47,7 +47,7 @@ def get_arguments():
         action="store",
         type=commandline_arg,
         required=True,
-        help='The source path to the .DS_Store file to parse.'
+        help='The source path to search recursively for .DS_Store files to parse. '
     )
     
     argument_parser.add_argument(
@@ -57,7 +57,7 @@ def get_arguments():
         action="store",
         type=commandline_arg,
         required=True,
-        help='The destination folder for parsed ds_store reports.'
+        help='The destination folder for generated reports.'
     )
     return argument_parser
     
